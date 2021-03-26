@@ -51,6 +51,7 @@ int main(int argc, char *argv[])
 	//////////////////////////////////////////////////////////////////////////
 	srand(seed);
 	bool exit_loop = false;
+	bool b_running_ok = true;
 	while (!exit_loop)
 	{		
 		//memset(buf, '\0', BUFLEN);		
@@ -58,7 +59,8 @@ int main(int argc, char *argv[])
 		if ((recv_len = recvfrom(channel_s, buf, BUFLEN, 0, (struct sockaddr*)&some_client, &slen)) == SOCKET_ERROR)
 		{
 			printf("recvfrom() failed with error code : %d", WSAGetLastError());
-			return EXIT_FAILURE;
+			b_running_ok = false;
+			exit_loop = true;		
 		}
 		// if msg recieved from reciever --> send it to sender then close socket
 		if ((some_client.sin_port == reciever.sin_port)&&(some_client.sin_addr.s_addr == reciever.sin_addr.s_addr)) {
@@ -73,25 +75,28 @@ int main(int argc, char *argv[])
 			}
 			fprintf(stderr, "sender:%s\n", inet_ntoa(sender.sin_addr));
 			fprintf(stderr, "reciever:%s\n", inet_ntoa(reciever.sin_addr));
-			fprintf(stderr, "%d bytes, flipped %d bits", total_bits, number_of_total_flipped_bits);
+			fprintf(stderr, "%d bytes, flipped %d bits", total_bytes, total_flipped_bits);
 			exit_loop = true;
 		}
 		else { // msg recieved from sender --> add noise and send to reciever
 			b_sender_exist = true;
 			memcpy(&sender, &some_client, sizeof(sender));
-			total_bits += recv_len;
-			number_of_total_flipped_bits += add_random_noise(buf, recv_len, p_err);
-			if (sendto(channel_s, buf, recv_len, 0, (struct sockaddr*)&reciever, slen) == SOCKET_ERROR)
-			{
-				printf("sendto() failed with error code : %d", WSAGetLastError());
-				return EXIT_FAILURE;
+			total_bytes += recv_len;
+			total_flipped_bits += add_random_noise(buf, recv_len, p_err);			
+			if (sendall(channel_s, buf, &recv_len, reciever) == EXIT_FAILURE) {
+				fprintf(stderr, "Erron in sendall()\n");
+				b_running_ok = false;
+				exit_loop = true;
 			}
 		}
 
 	}
 	closesocket(channel_s);
 	WSACleanup();
-	return EXIT_SUCCESS;
+	if (b_running_ok)
+		return EXIT_SUCCESS;
+	else
+		return EXIT_FAILURE;
 }
 
 int add_random_noise(char* buff, int data_len, int p_err) {
@@ -106,4 +111,23 @@ int add_random_noise(char* buff, int data_len, int p_err) {
 		}
 	}
 	return num_of_flip_bits;
+}
+
+int sendall(int s, char* buf, int* len, struct sockaddr_in client_addr) {
+	int total = 0; /* how many bytes we've sent */
+	int bytesleft = *len; /* how many we have left to send */
+	int n;
+	int slen;
+	slen = sizeof(struct sockaddr_in*);
+
+	while (total < *len) {
+		n = sendto(s, buf + total, bytesleft, 0, (struct sockaddr*)&client_addr, sizeof(struct sockaddr_in));
+		if (n == SOCKET_ERROR)
+			return EXIT_FAILURE;
+		if (n == -1) { break; }
+		total += n;
+		bytesleft -= n;
+	}
+	*len = total; /* return number actually sent here */
+	return n == -1 ? EXIT_FAILURE : EXIT_SUCCESS; /*-1 on failure, 0 on success */
 }
