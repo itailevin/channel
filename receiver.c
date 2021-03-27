@@ -45,6 +45,8 @@ int main(int argc, char* argv[]) {
     //////////////////////////////////////////////////////////////////////////
     bool exit_loop = false;
     int counter = 0;
+    FILE* file = fopen(file_name, "wb");
+    fclose(file);
     while (counter < 3) {
         String string = { "\0", 0 };
         if ((recv_len = recvfrom(receiver_s, str, MAX_CHUNK, 0, (struct sockaddr*)&channel, &slen)) ==
@@ -64,6 +66,7 @@ int main(int argc, char* argv[]) {
         printf("%s\n", unwrapped.str);
         String bits_to_str = bits_to_string(unwrapped);
         printf("%s\n", bits_to_str.str);
+        append_to_file(file_name, bits_to_str);
         free(str_in_bits.str);
         free(final_bits.str);
         free(unwrapped.str);

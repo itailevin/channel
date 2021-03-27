@@ -119,6 +119,20 @@ String read_file_in_chunks(const char* file_name, bool isSender) {
     return string;
 }
 
+void append_to_file(char* file_name, String string) {
+    FILE* file = fopen(file_name, "a+b");
+    if (!file) {
+        printf("Cannot open '%s': %s\n", file_name, strerror(errno));
+        exit(1);
+    }
+    fwrite(string.str, 1, string.length, file);
+    if (ferror(file)) {
+        fprintf(stderr, "file error\n");
+        exit(1);
+    }
+    fclose(file);
+}
+
 String drop_first_bit(String bits, int block_size) {
     char* string = (char*)malloc(bits.length / block_size * (block_size - 1) + 1);
     int bits_copied = 0;

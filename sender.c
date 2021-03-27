@@ -56,11 +56,11 @@ int main(int argc, char* argv[]) {
         free(hamming_wrapped.str);
         free(final_wrapped.str);
         free(bits_to_str.str);
-        //        Sleep(2000);
-        //        if (recvfrom(sender_s, buf, BUFLEN, 0, (struct sockaddr*)&channel, &slen) == SOCKET_ERROR) {
-        //            printf("recvfrom() failed with error code : %d", WSAGetLastError());
-        //        }
     }
+    if (recvfrom(sender_s, buf, BUFLEN, 0, (struct sockaddr*)&channel, &slen) == SOCKET_ERROR) {
+        printf("recvfrom() failed with error code : %d", WSAGetLastError());
+    }
+
     closesocket(sender_s);
     WSACleanup();
     return 0;
